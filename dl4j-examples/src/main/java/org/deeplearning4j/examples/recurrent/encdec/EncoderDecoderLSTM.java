@@ -38,6 +38,7 @@ import org.deeplearning4j.nn.conf.layers.RnnOutputLayer;
 import org.deeplearning4j.nn.graph.ComputationGraph;
 import org.deeplearning4j.nn.graph.vertex.GraphVertex;
 import org.deeplearning4j.nn.weights.WeightInit;
+import org.deeplearning4j.nn.workspace.LayerWorkspaceMgr;
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
 import org.deeplearning4j.util.ModelSerializer;
 import org.nd4j.linalg.activations.Activation;
@@ -387,17 +388,18 @@ public class EncoderDecoderLSTM {
         double[] decodeArr = new double[dict.size()];
         decodeArr[2] = 1;
         INDArray decode = Nd4j.create(decodeArr, new int[] { 1, dict.size(), 1 });
-        net.feedForward(new INDArray[] { in, decode }, false);
+        net.feedForward(new INDArray[] { in, decode }, false, false);
         org.deeplearning4j.nn.layers.recurrent.GravesLSTM decoder = (org.deeplearning4j.nn.layers.recurrent.GravesLSTM) net
                 .getLayer("decoder");
         Layer output = net.getLayer("output");
         GraphVertex mergeVertex = net.getVertex("merge");
         INDArray thoughtVector = mergeVertex.getInputs()[1];
+        LayerWorkspaceMgr mgr = LayerWorkspaceMgr.noWorkspaces();
         for (int row = 0; row < ROW_SIZE; ++row) {
             mergeVertex.setInputs(decode, thoughtVector);
-            INDArray merged = mergeVertex.doForward(false);
-            INDArray activateDec = decoder.rnnTimeStep(merged);
-            INDArray out = output.activate(activateDec, false);
+            INDArray merged = mergeVertex.doForward(false, mgr);
+            INDArray activateDec = decoder.rnnTimeStep(merged, mgr);
+            INDArray out = output.activate(activateDec, false, mgr);
             double d = rnd.nextDouble();
             double sum = 0.0;
             int idx = -1;
