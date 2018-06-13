@@ -48,7 +48,10 @@ import org.slf4j.LoggerFactory;
 public class MnistClassifier_WB {
 
 	private static final Logger log = LoggerFactory.getLogger(MnistClassifier_WB.class);
-	private static final String basePath = System.getProperty("java.io.tmpdir") + "/mnist";
+	
+	public static final String basePath = System.getProperty("java.io.tmpdir") + "/mnist";	// wilbur: made public
+	public static final String modelFile = basePath + "/minist-model.zip";	// wilbur
+	
 	private static final String dataUrl = "http://github.com/myleott/mnist_png/raw/master/mnist_png.tar.gz";
 
 	public static void main(String[] args) throws Exception {
@@ -148,9 +151,11 @@ public class MnistClassifier_WB {
 			testIter.reset();
 		}
 
-		ModelSerializer.writeModel(net, new File(basePath + "/minist-model.zip"), true);
+//		ModelSerializer.writeModel(net, new File(basePath + "/minist-model.zip"), true);
+		ModelSerializer.writeModel(net, new File(modelFile), true);
+
 		
-		System.out.println("Model written to " + (new File(basePath + "/minist-model.zip").getAbsolutePath()));	// wilbur
+		System.out.println("Model written to " + (new File(modelFile).getAbsolutePath()));	// wilbur
 	}
 
 }

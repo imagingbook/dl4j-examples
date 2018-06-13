@@ -42,131 +42,135 @@ import javafx.stage.Stage;
 @SuppressWarnings("restriction")
 public class MnistClassifierUI_WB extends Application {
 
-  private static final String basePath = System.getProperty("java.io.tmpdir") + "/mnist";
-  private final int canvasWidth = 150;
-  private final int canvasHeight = 150;
-  private MultiLayerNetwork net; // trained model
-
-  public MnistClassifierUI_WB() throws IOException {
-	System.out.println("Reading model from " + (new File(basePath + "/minist-model.zip").getPath()));	// wilbur
+	//  private static final String basePath = System.getProperty("java.io.tmpdir") + "/mnist";
+	private static final String basePath = MnistClassifier_WB.basePath;
+	private static final String modelFile = MnistClassifier_WB.modelFile;
 	
-    File model = new File(basePath + "/minist-model.zip");
-    if (!model.exists())
-      throw new IOException("Can't find the model");
-    net = ModelSerializer.restoreMultiLayerNetwork(model);
-  }
+	private final int canvasWidth = 150;
+	private final int canvasHeight = 150;
+	private MultiLayerNetwork net; // trained model
 
-  public static void main(String[] args) throws Exception {
-    launch();
-  }
+	public MnistClassifierUI_WB() throws IOException {
+		System.out.println("Reading model from " + (new File(modelFile).getPath()));	// wilbur
 
-  @Override
-  public void start(Stage stage) throws Exception {
-    Canvas canvas = new Canvas(canvasWidth, canvasHeight);
-    GraphicsContext ctx = canvas.getGraphicsContext2D();
+		File model = new File(modelFile);
+//		File model = new File(basePath + "/minist-model.zip");
+		if (!model.exists())
+			throw new IOException("Can't find the model");
+		net = ModelSerializer.restoreMultiLayerNetwork(model);
+	}
 
-    ImageView imgView = new ImageView();
-    imgView.setFitHeight(100);
-    imgView.setFitWidth(100);
-    ctx.setLineWidth(10);
-    ctx.setLineCap(StrokeLineCap.SQUARE);
-    Label lblResult = new Label();
+	public static void main(String[] args) throws Exception {
+		launch();
+	}
 
-    HBox hbBottom = new HBox(10, imgView, lblResult);
-    hbBottom.setAlignment(Pos.CENTER);
-    VBox root = new VBox(5, canvas, hbBottom);
-    root.setAlignment(Pos.CENTER);
+	@Override
+	public void start(Stage stage) throws Exception {
+		Canvas canvas = new Canvas(canvasWidth, canvasHeight);
+		GraphicsContext ctx = canvas.getGraphicsContext2D();
 
-//    Scene scene = new Scene(root, 520, 300);
-    Scene scene = new Scene(root, 600, 300);	// wilbur
-    stage.setScene(scene);
-    stage.setTitle("Draw a digit and hit enter (right-click to clear)");
-    stage.setResizable(false);
-    stage.show();
+		ImageView imgView = new ImageView();
+		imgView.setFitHeight(100);
+		imgView.setFitWidth(100);
+		ctx.setLineWidth(10);
+		ctx.setLineCap(StrokeLineCap.SQUARE);
+		Label lblResult = new Label();
 
-    canvas.setOnMousePressed(e -> {
-      ctx.setStroke(Color.WHITE);
-      ctx.beginPath();
-      ctx.moveTo(e.getX(), e.getY());
-      ctx.stroke();
-    });
-    canvas.setOnMouseDragged(e -> {
-      ctx.setStroke(Color.WHITE);
-      ctx.lineTo(e.getX(), e.getY());
-      ctx.stroke();
-    });
-    canvas.setOnMouseClicked(e -> {
-      if (e.getButton() == MouseButton.SECONDARY) {
-        clear(ctx);
-      }
-    });
-    canvas.setOnKeyReleased(e -> {
-      if (e.getCode() == KeyCode.ENTER) {
-        BufferedImage scaledImg = getScaledImage(canvas);
-        imgView.setImage(SwingFXUtils.toFXImage(scaledImg, null));
-        try {
-          predictImage(scaledImg, lblResult);
-        } catch (Exception e1) {
-          e1.printStackTrace();
-        }
-      }
-    });
-    clear(ctx);
-    canvas.requestFocus();
-  }
+		HBox hbBottom = new HBox(10, imgView, lblResult);
+		hbBottom.setAlignment(Pos.CENTER);
+		VBox root = new VBox(5, canvas, hbBottom);
+		root.setAlignment(Pos.CENTER);
 
-  private void clear(GraphicsContext ctx) {
-    ctx.setFill(Color.BLACK);
-    ctx.fillRect(0, 0, 300, 300);
-  }
+		//    Scene scene = new Scene(root, 520, 300);
+		Scene scene = new Scene(root, 600, 300);	// wilbur
+		stage.setScene(scene);
+		stage.setTitle("Draw a digit and hit enter (right-click to clear)");
+		stage.setResizable(false);
+		stage.show();
 
-  private BufferedImage getScaledImage(Canvas canvas) {
-    WritableImage writableImage = new WritableImage(canvasWidth, canvasHeight);
-    canvas.snapshot(null, writableImage);
-    Image tmp = SwingFXUtils.fromFXImage(writableImage, null).getScaledInstance(28, 28, Image.SCALE_SMOOTH);
-    BufferedImage scaledImg = new BufferedImage(28, 28, BufferedImage.TYPE_BYTE_GRAY);
-    Graphics graphics = scaledImg.getGraphics();
-    graphics.drawImage(tmp, 0, 0, null);
-    graphics.dispose();
-    return scaledImg;
-  }
+		canvas.setOnMousePressed(e -> {
+			ctx.setStroke(Color.WHITE);
+			ctx.beginPath();
+			ctx.moveTo(e.getX(), e.getY());
+			ctx.stroke();
+		});
+		canvas.setOnMouseDragged(e -> {
+			ctx.setStroke(Color.WHITE);
+			ctx.lineTo(e.getX(), e.getY());
+			ctx.stroke();
+		});
+		canvas.setOnMouseClicked(e -> {
+			if (e.getButton() == MouseButton.SECONDARY) {
+				clear(ctx);
+			}
+		});
+		canvas.setOnKeyReleased(e -> {
+			if (e.getCode() == KeyCode.ENTER) {
+				BufferedImage scaledImg = getScaledImage(canvas);
+				imgView.setImage(SwingFXUtils.toFXImage(scaledImg, null));
+				try {
+					predictImage(scaledImg, lblResult);
+				} catch (Exception e1) {
+					e1.printStackTrace();
+				}
+			}
+		});
+		clear(ctx);
+		canvas.requestFocus();
+	}
 
-  private void predictImage(BufferedImage img, Label lbl) throws IOException {
-    NativeImageLoader loader = new NativeImageLoader(28, 28, 1, true);
-    INDArray image = loader.asRowVector(img);
-    ImagePreProcessingScaler scaler = new ImagePreProcessingScaler(0, 1);
-    scaler.transform(image);
-    INDArray output = net.output(image);
-    //lbl.setText("Prediction: " + net.predict(image)[0] + "\n " + output);	// wilbur
-    
-    String output2 = toString(output.toDoubleVector()); 	// wilbur
-    lbl.setText("Prediction: " + net.predict(image)[0] + "\n " + output2);
-    
-    
-  }
-  
-  
-  // -----------------------------------------------------------------------
+	private void clear(GraphicsContext ctx) {
+		ctx.setFill(Color.BLACK);
+		ctx.fillRect(0, 0, 300, 300);
+	}
 
-  static Locale loc = Locale.US;
+	private BufferedImage getScaledImage(Canvas canvas) {
+		WritableImage writableImage = new WritableImage(canvasWidth, canvasHeight);
+		canvas.snapshot(null, writableImage);
+		Image tmp = SwingFXUtils.fromFXImage(writableImage, null).getScaledInstance(28, 28, Image.SCALE_SMOOTH);
+		BufferedImage scaledImg = new BufferedImage(28, 28, BufferedImage.TYPE_BYTE_GRAY);
+		Graphics graphics = scaledImg.getGraphics();
+		graphics.drawImage(tmp, 0, 0, null);
+		graphics.dispose();
+		return scaledImg;
+	}
 
-  public String toString(double[] x) {
-	  ByteArrayOutputStream bas = new ByteArrayOutputStream();
-	  PrintStream strm = new PrintStream(bas);
-	  printToStream(x, strm);
-	  return bas.toString();
-  }
+	private void predictImage(BufferedImage img, Label lbl) throws IOException {
+		NativeImageLoader loader = new NativeImageLoader(28, 28, 1, true);
+		INDArray image = loader.asRowVector(img);
+		ImagePreProcessingScaler scaler = new ImagePreProcessingScaler(0, 1);
+		scaler.transform(image);
+		INDArray output = net.output(image);
+		//lbl.setText("Prediction: " + net.predict(image)[0] + "\n " + output);	// wilbur
 
-  public void printToStream(double[] A, PrintStream strm) {
-	  String fStr = "%.4f"; // PrintPrecision.getFormatStringFloat();
-	  strm.format("[");
-	  for (int i = 0; i < A.length; i++) {
-		  if (i > 0)
-			  strm.format(", ");
-		  strm.format(loc, fStr, A[i]);
-	  }
-	  strm.format("]");
-	  strm.flush();
-  }
+		String output2 = toString(output.toDoubleVector()); 	// wilbur
+		lbl.setText("Prediction: " + net.predict(image)[0] + "\n " + output2);
+
+
+	}
+
+
+	// -----------------------------------------------------------------------
+
+	static Locale loc = Locale.US;
+
+	public String toString(double[] x) {
+		ByteArrayOutputStream bas = new ByteArrayOutputStream();
+		PrintStream strm = new PrintStream(bas);
+		printToStream(x, strm);
+		return bas.toString();
+	}
+
+	public void printToStream(double[] A, PrintStream strm) {
+		String fStr = "%.4f"; // PrintPrecision.getFormatStringFloat();
+		strm.format("[");
+		for (int i = 0; i < A.length; i++) {
+			if (i > 0)
+				strm.format(", ");
+			strm.format(loc, fStr, A[i]);
+		}
+		strm.format("]");
+		strm.flush();
+	}
 
 }
